@@ -33,46 +33,37 @@ except Exception as ex:
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Azure Function appelée')
+    logging.info('Function recommend-article triggered.')
 
     try:
         req_body = req.get_json()
-        user_id = req_body.get('id')
-        rec_type = req_body.get('type')
-    except Exception as e:
-        return func.HttpResponse(
-            json.dumps({"error": f"Invalid JSON body: {e}"}),
-            status_code=400,
-            mimetype="application/json"
-        )
+        logging.info(f"Request body: {req_body}")
+    except ValueError as e:
+        logging.error(f"Failed to parse JSON: {e}")
+        return func.HttpResponse("Invalid JSON", status_code=400)
 
-    if not isinstance(user_id, int) or rec_type not in ["cb", "cf"]:
-        return func.HttpResponse(
-            json.dumps({
-                "error": "Requête invalide. Format attendu: {id: int, type: 'cb' ou 'cf'}"
-            }),
-            status_code=400,
-            mimetype="application/json"
-        )
+    id = req_body.get('id')
+    type = req_body.get('type')
 
-    try:
-        if rec_type == "cb":
-            recommended = utils.contentBasedRecommendArticle(
-                articles_df, users_df, user_id)
-        else:
-            recommended = utils.collaborativeFilteringRecommendArticle(
-                model, articles_df, users_df, user_id)
+    logging.info(f"id={id}, type={type}")
 
-        return func.HttpResponse(
-            json.dumps({"recommendations": recommended}, ensure_ascii=False),
-            status_code=200,
-            mimetype="application/json"
-        )
+    if isinstance(id, int) and isinstance(type, str):
+        try:
+            if type == "cb":
+                recommended = utils.contentBasedRecommendArticle(articles_df, users_df, id)
+            else:
+                recommended = utils.collaborativeFilteringRecommendArticle(model, articles_df, users_df, id)
 
-    except Exception as e:
-        logging.error(f"Erreur pendant la recommandation: {e}")
+            logging.info(f"Recommendation result: {recommended}")
+            return func.HttpResponse(str(recommended), status_code=200)
+
+        except Exception as e:
+            logging.error(f"Error while computing recommendation: {e}")
+            return func.HttpResponse("Internal server error", status_code=500)
+
+    else:
+        logging.warning("Invalid request parameters.")
         return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
+             "Requête invalide.\nDans le body doit figurer sous format json :\n- id (int)\n- type (cb ou cf)",
+             status_code=400
         )
