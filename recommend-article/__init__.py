@@ -8,7 +8,7 @@ import utils
 import json
 
 try:
-    logging.info("Azure Blob Storage v" + __version__)
+    logging.info("CACAzure Blob Storage v" + __version__)
 
     connect_str = os.getenv('AzureWebJobsStorage')
 
