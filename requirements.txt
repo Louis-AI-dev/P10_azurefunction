@@ -6,5 +6,5 @@ azure-functions
 azure-storage-blob
 pandas
 numpy
-sklearn
+scikit-learn
 surprise
